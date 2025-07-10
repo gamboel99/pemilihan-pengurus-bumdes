@@ -40,7 +40,7 @@ if "penilai_info" not in st.session_state:
                 "lembaga": lembaga_penilai
             }
             st.success("✅ Identitas disimpan.")
-            st.rerun()
+            st.stop()
     st.stop()
 
 penilai = st.session_state.penilai_info
@@ -92,12 +92,12 @@ else:
         hasil_df = pd.concat([hasil_df, pd.DataFrame([data])], ignore_index=True)
         hasil_df.to_csv(HASIL_FILE, index=False)
 
+        # Reset nilai input manual tanpa st.experimental_rerun
         for k in ["psikologi", "office", "presentasi", "esai", "wawancara"]:
-            if k in st.session_state:
-                del st.session_state[k]
+            st.session_state.pop(k, None)
 
         st.success("✅ Penilaian disimpan. Silakan lanjut ke kandidat berikutnya.")
-        st.experimental_rerun()
+        st.info("Silakan pilih posisi dan kandidat lain untuk melanjutkan penilaian.")
 
     # Rekap penilaian oleh penilai
     if not hasil_df.empty:
