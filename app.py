@@ -40,8 +40,9 @@ if "penilai_info" not in st.session_state:
                 "lembaga": lembaga_penilai
             }
             st.success("✅ Identitas disimpan.")
+            st.experimental_rerun()
+        else:
             st.stop()
-    st.stop()
 
 penilai = st.session_state.penilai_info
 st.info(f"Penilai: {penilai['nama']} ({penilai['jabatan']} - {penilai['lembaga']})")
