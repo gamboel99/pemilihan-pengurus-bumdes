@@ -43,12 +43,10 @@ else:
 # --- Filter Kandidat yang Belum Dinilai
 if os.path.exists(HASIL_FILE):
     hasil_df = pd.read_csv(HASIL_FILE)
+    if not hasil_df.empty and "Nama Penilai" in hasil_df.columns:
     sudah_dinilai = hasil_df[hasil_df["Nama Penilai"] == penilai["nama"]][["Nama", "Posisi"]]
-    kandidat_tersedia = pd.merge(kandidat_df, sudah_dinilai, on=["Nama", "Posisi"], how="left", indicator=True)
-    kandidat_tersedia = kandidat_tersedia[kandidat_tersedia["_merge"] == "left_only"].drop(columns=["_merge"])
 else:
-    hasil_df = pd.DataFrame()
-    kandidat_tersedia = kandidat_df.copy()
+    sudah_dinilai = pd.DataFrame(columns=["Nama", "Posisi"])
 
 if kandidat_tersedia.empty:
     st.info("✅ Anda telah menilai semua kandidat. Terima kasih.")
