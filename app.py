@@ -1,4 +1,4 @@
-# FINAL SCRIPT - app.py
+# FINAL SCRIPT - app.py (dengan Export Word + TTD + QR)
 
 import streamlit as st
 import pandas as pd
@@ -144,6 +144,50 @@ if not hasil_df.empty:
     for posisi in ranking_df["Posisi"].unique():
         st.markdown(f"### 🏆 {posisi}")
         st.dataframe(ranking_df[ranking_df["Posisi"] == posisi][["Nama", "Total"]])
+
+    if st.button("📥 Download Word Rekap & Pengesahan"):
+        doc = Document()
+        header = doc.add_paragraph()
+        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = header.add_run("LAPORAN HASIL PENILAIAN\nPENGURUS BUMDes Buwana Raharja Desa Keling")
+        run.bold = True
+        run.font.size = Pt(14)
+
+        doc.add_paragraph("\n")
+        table = doc.add_table(rows=1, cols=len(ranking_df.columns))
+        hdr_cells = table.rows[0].cells
+        for i, col in enumerate(ranking_df.columns):
+            hdr_cells[i].text = col
+        for _, row in ranking_df.iterrows():
+            row_cells = table.add_row().cells
+            for i, item in enumerate(row):
+                row_cells[i].text = str(round(item, 2)) if isinstance(item, float) else str(item)
+
+        doc.add_paragraph("\n")
+        p = doc.add_paragraph("Lembar Pengesahan Penilai:")
+        p.bold = True
+
+        for _, row in penilai_df.iterrows():
+            doc.add_paragraph(f"\nNama: {row['Nama Penilai']}\nTanda tangan: .........................")
+
+        qr = qrcode.make("Dokumen sah, diterbitkan oleh Panitia Pemilihan BUMDes Desa Keling")
+        buffer = BytesIO()
+        qr.save(buffer)
+        buffer.seek(0)
+        doc.add_picture(buffer, width=Inches(1.5))
+
+        doc.add_paragraph("Barcode ini menunjukkan dokumen resmi yang diterbitkan oleh Panitia Pemilihan Pengurus BUMDes Buwana Raharja Desa Keling.")
+
+        output_path = os.path.join(DATA_FOLDER, "Rekap_Penilaian_BUMDes.docx")
+        doc.save(output_path)
+
+        with open(output_path, "rb") as f:
+            st.download_button(
+                label="📄 Download Rekap Word",
+                data=f,
+                file_name="Rekap_Penilaian_BUMDes.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
 
 # ============== FOOTER =====================
 st.markdown("---")
