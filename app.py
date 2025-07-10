@@ -84,7 +84,8 @@ if not hasil_df.empty:
         st.dataframe(ranking_df[ranking_df["Posisi"] == posisi][["Nama", "Total"]].reset_index(drop=True))
 
 # --- Footer ---
-st.markdown("""
----
-<center>Developed by CV Mitra Utama Consultindo</center>
-""")
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center;'>Developed by CV Mitra Utama Consultindo</div>",
+    unsafe_allow_html=True
+)
