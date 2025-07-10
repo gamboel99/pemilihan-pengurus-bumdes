@@ -94,7 +94,7 @@ def generate_word_doc(ranking_df, identitas_penilai):
 
 # ===== Streamlit App =====
 st.set_page_config("Polling Pengurus BUMDes", layout="wide")
-st.title("\ud83d\udcca Polling Pengurus BUMDes Buwana Raharja")
+st.title("Polling Pengurus BUMDes Buwana Raharja")
 
 # Identitas
 st.header("\ud83d\udcdf Identitas Penilai")
