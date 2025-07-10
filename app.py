@@ -49,12 +49,13 @@ with st.form("form_penilaian"):
     posisi = st.selectbox("Pilih Posisi yang Dinilai:", kandidat_df["Posisi"].unique())
     kandidat_list = kandidat_df[kandidat_df["Posisi"] == posisi]["Nama"].tolist()
 
+    nilai_input = {}
     for kandidat in kandidat_list:
         st.markdown(f"### Kandidat: **{kandidat}**")
+        nilai_input[kandidat] = {}
         for aspek in bobot:
             key = f"{kandidat}_{aspek}"
-            nilai = st.slider(f"{aspek} (0-100)", 0, 100, 0, key=key)
-            st.session_state[key] = nilai
+            nilai_input[kandidat][aspek] = st.slider(f"{aspek} untuk {kandidat} (0-100)", 0, 100, 0, key=key)
 
     submitted = st.form_submit_button("💾 Simpan Penilaian")
 
@@ -66,7 +67,7 @@ with st.form("form_penilaian"):
                 "Posisi": posisi
             }
             for aspek in bobot:
-                row[aspek] = st.session_state[f"{kandidat}_{aspek}"]
+                row[aspek] = nilai_input[kandidat][aspek]
             hasil_df = pd.concat([hasil_df, pd.DataFrame([row])], ignore_index=True)
         hasil_df.to_csv(HASIL_FILE, index=False)
         st.success("Penilaian berhasil disimpan!")
