@@ -2,168 +2,170 @@ import streamlit as st
 import pandas as pd
 import os
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import qrcode
 from io import BytesIO
+from PIL import Image
 
-# --- Konstanta
+# --- Konstanta ---
 DATA_FOLDER = "data"
 KANDIDAT_FILE = os.path.join(DATA_FOLDER, "kandidat.csv")
 HASIL_FILE = os.path.join(DATA_FOLDER, "hasil_penilaian.csv")
+LOGO_BUMDES = "logo_bumdes.png"
+LOGO_DESA = "logo_desa.png"
+
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
-# --- Load kandidat
+# --- Load kandidat ---
 if os.path.exists(KANDIDAT_FILE):
     kandidat_df = pd.read_csv(KANDIDAT_FILE)
 else:
     kandidat_df = pd.DataFrame(columns=["Nama", "Posisi"])
 
-# --- Form Identitas Penilai
-st.title("🗳️ Sistem Penilaian Pemilihan Pengurus BUMDes")
-st.subheader("🧑‍⚖️ Form Identitas Penilai")
+# --- Identitas Penilai ---
+st.title("🗳️ Sistem Penilaian Pengurus BUMDes Buwana Raharja")
+st.markdown("---")
 
 if "penilai_info" not in st.session_state:
     with st.form("form_penilai"):
-        nama_penilai = st.text_input("Nama Lengkap")
+        nama_penilai = st.text_input("Nama Penilai")
         jabatan_penilai = st.text_input("Jabatan")
-        lembaga_penilai = st.text_input("Asal Lembaga (Pemdes/BPD/Kecamatan/DPMPD)")
-        submit = st.form_submit_button("✅ Simpan Identitas")
-        if submit and nama_penilai and jabatan_penilai and lembaga_penilai:
+        lembaga_penilai = st.selectbox("Asal Lembaga", ["Pemdes", "BPD", "Kecamatan", "DPMPD"])
+        submit = st.form_submit_button("Simpan Identitas")
+        if submit and nama_penilai and jabatan_penilai:
             st.session_state.penilai_info = {
-                "nama": nama_penilai.strip(),
-                "jabatan": jabatan_penilai.strip(),
-                "lembaga": lembaga_penilai.strip()
+                "nama": nama_penilai,
+                "jabatan": jabatan_penilai,
+                "lembaga": lembaga_penilai
             }
             st.success("✅ Identitas disimpan.")
             st.rerun()
     st.stop()
 
 penilai = st.session_state.penilai_info
-st.success(f"Penilai: {penilai['nama']} ({penilai['jabatan']} - {penilai['lembaga']})")
+st.info(f"Penilai: {penilai['nama']} ({penilai['jabatan']} - {penilai['lembaga']})")
 
-# --- Load hasil penilaian
+# --- Load hasil ---
 if os.path.exists(HASIL_FILE):
     hasil_df = pd.read_csv(HASIL_FILE)
-    if not hasil_df.empty and "Nama Penilai" in hasil_df.columns:
-        sudah_dinilai = hasil_df[hasil_df["Nama Penilai"] == penilai["nama"]][["Nama", "Posisi"]]
-    else:
-        sudah_dinilai = pd.DataFrame(columns=["Nama", "Posisi"])
 else:
     hasil_df = pd.DataFrame()
-    sudah_dinilai = pd.DataFrame(columns=["Nama", "Posisi"])
 
-# --- Filter kandidat yang belum dinilai oleh penilai ini
+# --- Kandidat yang belum dinilai ---
+sudah_dinilai = hasil_df[hasil_df["Nama Penilai"] == penilai["nama"]][["Nama", "Posisi"]] if not hasil_df.empty else pd.DataFrame(columns=["Nama", "Posisi"])
 kandidat_tersedia = pd.merge(kandidat_df, sudah_dinilai, on=["Nama", "Posisi"], how="left", indicator=True)
-kandidat_tersedia = kandidat_tersedia[kandidat_tersedia["_merge"] == "left_only"].drop(columns=["_merge"])
+kandidat_tersedia = kandidat_tersedia[kandidat_tersedia["_merge"] == "left_only"].drop(columns="_merge")
 
 if kandidat_tersedia.empty:
-    st.info("✅ Anda telah menyelesaikan semua penilaian.")
-    st.stop()
+    st.success("✅ Anda telah menyelesaikan semua penilaian.")
+else:
+    st.markdown("---")
+    st.subheader("📝 Form Penilaian")
 
-# --- Form Penilaian
-st.subheader("📝 Form Penilaian Kandidat")
-posisi_pilih = st.selectbox("Pilih Posisi:", kandidat_tersedia["Posisi"].unique())
-kandidat_pilih = st.selectbox("Pilih Kandidat:", kandidat_tersedia[kandidat_tersedia["Posisi"] == posisi_pilih]["Nama"].unique())
+    posisi_pilih = st.selectbox("Pilih Posisi", kandidat_tersedia["Posisi"].unique())
+    kandidat_pilih = st.selectbox("Pilih Kandidat", kandidat_tersedia[kandidat_tersedia["Posisi"] == posisi_pilih]["Nama"].unique())
 
-with st.form("form_penilaian"):
-    psikologi = st.number_input("Tes Psikologi (0-100)", 0, 100, value=0)
-    office = st.number_input("Tes Microsoft Office (0-100)", 0, 100, value=0)
-    presentasi = st.number_input("Presentasi Gagasan (0-100)", 0, 100, value=0)
-    esai = st.number_input("Esai Refleksi Diri (0-100)", 0, 100, value=0)
-    wawancara = st.number_input("Wawancara Panel (0-100)", 0, 100, value=0)
-    simpan = st.form_submit_button("💾 Simpan Penilaian")
+    with st.form("form_penilaian"):
+        psikologi = st.number_input("Tes Psikologi (15%)", 0, 100, value=0, key="psikologi")
+        office = st.number_input("Tes MS Office (15%)", 0, 100, value=0, key="office")
+        presentasi = st.number_input("Presentasi Gagasan (30%)", 0, 100, value=0, key="presentasi")
+        esai = st.number_input("Esai Refleksi Diri (20%)", 0, 100, value=0, key="esai")
+        wawancara = st.number_input("Wawancara Panel (20%)", 0, 100, value=0, key="wawancara")
+        simpan = st.form_submit_button("💾 Simpan Penilaian")
 
-if simpan:
-    nilai = pd.DataFrame([{
-        "Nama": kandidat_pilih,
-        "Posisi": posisi_pilih,
-        "Nama Penilai": penilai["nama"],
-        "Jabatan": penilai["jabatan"],
-        "Lembaga": penilai["lembaga"],
-        "Tes Psikologi": psikologi,
-        "Tes MS Office": office,
-        "Presentasi Gagasan": presentasi,
-        "Esai Refleksi Diri": esai,
-        "Wawancara Panel": wawancara
-    }])
-    hasil_df = pd.concat([hasil_df, nilai], ignore_index=True)
-    hasil_df.to_csv(HASIL_FILE, index=False)
-    st.success("✅ Penilaian berhasil disimpan.")
-    st.rerun()
+    if simpan:
+        skor_total = (psikologi * 0.15 + office * 0.15 + presentasi * 0.3 + esai * 0.2 + wawancara * 0.2)
+        data = {
+            "Nama": kandidat_pilih,
+            "Posisi": posisi_pilih,
+            "Nama Penilai": penilai["nama"],
+            "Jabatan": penilai["jabatan"],
+            "Lembaga": penilai["lembaga"],
+            "Tes Psikologi": psikologi,
+            "Tes MS Office": office,
+            "Presentasi Gagasan": presentasi,
+            "Esai Refleksi Diri": esai,
+            "Wawancara Panel": wawancara,
+            "Total Skor": skor_total
+        }
+        hasil_df = pd.concat([hasil_df, pd.DataFrame([data])], ignore_index=True)
+        hasil_df.to_csv(HASIL_FILE, index=False)
 
-# --- Export Rekap Word
-st.subheader("📄 Unduh Rekapitulasi Penilaian")
-if st.button("📥 Download Word"):
-    if not os.path.exists(HASIL_FILE) or hasil_df.empty:
+        for k in ["psikologi", "office", "presentasi", "esai", "wawancara"]:
+            if k in st.session_state:
+                del st.session_state[k]
+
+        st.success("✅ Penilaian disimpan. Silakan lanjut ke kandidat berikutnya.")
+        st.experimental_rerun()
+
+    # Rekap penilaian oleh penilai
+    if not hasil_df.empty:
+        st.subheader("📊 Penilaian Anda")
+        rekap_penilai = hasil_df[hasil_df["Nama Penilai"] == penilai["nama"]]
+        for posisi in rekap_penilai["Posisi"].unique():
+            st.markdown(f"**Posisi: {posisi}**")
+            st.dataframe(rekap_penilai[rekap_penilai["Posisi"] == posisi][["Nama", "Total Skor"]])
+
+# --- Tombol Download Rekap Final ---
+st.markdown("---")
+st.subheader("📥 Unduh Rekap Final Keseluruhan")
+
+if st.button("📄 Download Word Rekapitulasi"):
+    if hasil_df.empty:
         st.warning("Belum ada data penilaian.")
     else:
-        df = pd.read_csv(HASIL_FILE)
-        df["Total"] = (
-            df["Tes Psikologi"] * 0.15 +
-            df["Tes MS Office"] * 0.15 +
-            df["Presentasi Gagasan"] * 0.30 +
-            df["Esai Refleksi Diri"] * 0.20 +
-            df["Wawancara Panel"] * 0.20
-        )
-        rekap = df.groupby(["Nama", "Posisi"]).agg({"Total": "mean"}).reset_index()
-        rekap = rekap.sort_values(["Posisi", "Total"], ascending=[True, False])
-
         doc = Document()
-        title = doc.add_paragraph()
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = title.add_run("LAPORAN REKAPITULASI PENILAIAN\nPENGURUS BUMDes Buwana Raharja Desa Keling")
+        section = doc.sections[0]
+        section.left_margin = section.right_margin = Pt(36)
+
+        header = doc.add_paragraph()
+        header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = header.add_run("LAPORAN REKAPITULASI PENILAIAN\nPENGURUS BUMDes BUWANA RAHARJA DESA KELING")
         run.bold = True
         run.font.size = Pt(14)
 
-        for posisi in rekap["Posisi"].unique():
-            doc.add_paragraph("\n")
-            doc.add_paragraph(posisi).runs[0].bold = True
-            table = doc.add_table(rows=1, cols=4)
-            hdr = table.rows[0].cells
-            hdr[0].text = "No"
-            hdr[1].text = "Nama"
-            hdr[2].text = "Skor Total"
-            hdr[3].text = "Penghargaan"
-            data_posisi = rekap[rekap["Posisi"] == posisi].reset_index(drop=True)
-            for i, row in data_posisi.iterrows():
+        for posisi in kandidat_df["Posisi"].unique():
+            doc.add_paragraph(f"\nPosisi: {posisi}", style="List Bullet")
+            df_posisi = hasil_df[hasil_df["Posisi"] == posisi]
+            if df_posisi.empty:
+                doc.add_paragraph("Belum ada penilaian.")
+                continue
+            grouped = df_posisi.groupby("Nama")["Total Skor"].mean().reset_index().sort_values(by="Total Skor", ascending=False)
+            table = doc.add_table(rows=1, cols=3)
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Peringkat'
+            hdr_cells[1].text = 'Nama'
+            hdr_cells[2].text = 'Skor Rata-rata'
+            for i, row in enumerate(grouped.itertuples(), 1):
                 cells = table.add_row().cells
-                cells[0].text = str(i + 1)
-                cells[1].text = row["Nama"]
-                cells[2].text = f"{row['Total']:.2f}"
-                if i == 0:
-                    cells[3].text = "🥇 Juara 1"
-                elif i == 1:
-                    cells[3].text = "🥈 Juara 2"
-                elif i == 2:
-                    cells[3].text = "🥉 Juara 3"
-                else:
-                    cells[3].text = "-"
-            doc.add_paragraph(f"🎉 Selamat kepada {data_posisi.iloc[0]['Nama']} sebagai {posisi} terbaik.")
+                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else str(i)
+                cells[0].text = medal
+                cells[1].text = row.Nama
+                cells[2].text = f"{row._2:.2f}"
+            pemenang = grouped.iloc[0]["Nama"]
+            doc.add_paragraph(f"\nSelamat kepada {pemenang} yang terpilih sebagai {posisi}.")
 
-        doc.add_paragraph("\n\nLembar Pengesahan Penilai:").runs[0].bold = True
+        doc.add_paragraph("\n\nLembar Pengesahan:")
         table = doc.add_table(rows=1, cols=3)
-        table.rows[0].cells[0].text = "Nama Penilai"
-        table.rows[0].cells[1].text = "Jabatan"
-        table.rows[0].cells[2].text = "Tanda Tangan"
-        for _, r in df[["Nama Penilai", "Jabatan"]].drop_duplicates().iterrows():
-            row = table.add_row().cells
-            row[0].text = r["Nama Penilai"]
-            row[1].text = r["Jabatan"]
-            row[2].text = ".............................."
+        row = table.rows[0].cells
+        row[0].text = f"Penilai:\n{penilai['nama']}\n{penilai['jabatan']}\n{penilai['lembaga']}"
+        row[1].text = "Direktur BUMDes\n(...................)"
+        row[2].text = "Kepala Desa\n(...................)"
 
-        qr = qrcode.make("Dokumen resmi Panitia Pemilihan BUMDes Desa Keling")
+        doc.add_paragraph("\n\nDokumen ini resmi diterbitkan oleh Panitia Pemilihan Pengurus BUMDes.")
+        img = qrcode.make("Dokumen sah oleh Panitia Pemilihan BUMDes Desa Keling")
         buf = BytesIO()
-        qr.save(buf)
-        buf.seek(0)
-        doc.add_picture(buf, width=Inches(1.3))
-        doc.add_paragraph("Barcode ini menunjukkan dokumen resmi yang diterbitkan oleh Panitia Pemilihan Pengurus BUMDes Buwana Raharja Desa Keling.")
+        img.save(buf)
+        doc.add_picture(BytesIO(buf.getvalue()), width=Pt(100))
 
-        file_path = os.path.join(DATA_FOLDER, "Rekap_Penilaian_BUMDes.docx")
-        doc.save(file_path)
+        output = BytesIO()
+        doc.save(output)
+        st.download_button(
+            label="📥 Klik untuk Unduh",
+            data=output.getvalue(),
+            file_name="Rekap_Penilaian_BUMDes.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
 
-        with open(file_path, "rb") as f:
-            st.download_button("📄 Unduh Word", f, file_name="Rekap_Penilaian_BUMDes.docx")
-
-# --- Footer
-st.markdown("<div style='text-align:center'>Developed by CV Mitra Utama Consultindo</div>", unsafe_allow_html=True)
+st.markdown("<center>Developed by CV Mitra Utama Consultindo</center>", unsafe_allow_html=True)
