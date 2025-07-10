@@ -16,20 +16,15 @@ PENILAI_FILE = f"{DATA_FOLDER}/penilai.csv"
 KANDIDAT_FILE = f"{DATA_FOLDER}/kandidat.csv"
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
-# --- Load kandidat dan penilai
+# --- Load kandidat
 if os.path.exists(KANDIDAT_FILE):
     kandidat_df = pd.read_csv(KANDIDAT_FILE)
 else:
     kandidat_df = pd.DataFrame({"Nama": [], "Posisi": []})
 
-if os.path.exists(PENILAI_FILE):
-    penilai_df = pd.read_csv(PENILAI_FILE)
-else:
-    penilai_df = pd.DataFrame({"Nama Penilai": []})
-
-# --- Form identitas penilai
+# --- Form identitas penilai manual
 st.subheader("🧑‍⚖️ Identitas Penilai")
-nama_penilai = st.selectbox("Pilih Identitas Penilai:", penilai_df["Nama Penilai"].unique())
+nama_penilai = st.text_input("Masukkan Nama Penilai")
 
 # --- Form penilaian
 st.subheader("📝 Form Penilaian")
@@ -44,7 +39,7 @@ with st.form("form_penilaian"):
     wawancara = st.number_input("Wawancara Panel (0-100)", 0, 100)
     submit = st.form_submit_button("💾 Simpan Penilaian")
 
-if submit:
+if submit and nama_penilai:
     nilai_baru = pd.DataFrame.from_dict([{
         "Nama": kandidat_pilih,
         "Posisi": posisi_pilih,
@@ -58,8 +53,8 @@ if submit:
 
     if os.path.exists(HASIL_FILE):
         hasil_lama = pd.read_csv(HASIL_FILE)
-        # Cegah duplikasi penilai terhadap kandidat yang sama
         hasil_lama = hasil_lama[~((hasil_lama["Nama"] == kandidat_pilih) & 
+                                  (hasil_lama["Posisi"] == posisi_pilih) & 
                                   (hasil_lama["Nama Penilai"] == nama_penilai))]
         hasil_df = pd.concat([hasil_lama, nilai_baru], ignore_index=True)
     else:
@@ -67,6 +62,7 @@ if submit:
 
     hasil_df.to_csv(HASIL_FILE, index=False)
     st.success("✅ Penilaian berhasil disimpan.")
+    st.experimental_rerun()
 
 # --- Export Word dengan piala, ucapan, QR dan pengesahan
 st.subheader("📄 Export Word Rekap dengan Piala dan Ucapan")
@@ -124,9 +120,10 @@ if st.button("📥 Generate Word Laporan"):
     pengesahan.rows[0].cells[0].text = "Nama Penilai"
     pengesahan.rows[0].cells[1].text = "Tanda Tangan"
 
-    for _, row in penilai_df.iterrows():
+    penilai_unique = hasil_df["Nama Penilai"].dropna().unique()
+    for nama in penilai_unique:
         r = pengesahan.add_row().cells
-        r[0].text = row["Nama Penilai"]
+        r[0].text = nama
         r[1].text = ".........................."
 
     qr = qrcode.make("Dokumen sah, diterbitkan oleh Panitia Pemilihan BUMDes Desa Keling")
