@@ -1,5 +1,3 @@
-# STREAMLIT APLIKASI FINAL - PENILAIAN PENGURUS BUMDes BUWANA RAHARJA DESA KELING
-
 import streamlit as st
 import pandas as pd
 import os
@@ -36,7 +34,7 @@ if "penilai_info" not in st.session_state:
             "lembaga": lembaga_penilai.strip()
         }
         st.success("Identitas penilai disimpan.")
-        st.experimental_rerun()
+        st.rerun()
     st.stop()
 else:
     penilai = st.session_state.penilai_info
@@ -92,7 +90,7 @@ if simpan:
     hasil_df = pd.concat([hasil_df, nilai], ignore_index=True)
     hasil_df.to_csv(HASIL_FILE, index=False)
     st.success("✅ Penilaian berhasil disimpan.")
-    st.experimental_rerun()
+    st.rerun()
 
 # --- Export Word Rekap
 st.subheader("📄 Export Rekap Penilaian (Word)")
@@ -130,7 +128,7 @@ if st.button("📥 Generate Rekap Word"):
                 cells[0].text = str(i+1)
                 cells[1].text = row["Nama"]
                 cells[2].text = f"{row['Total']:.2f}"
-                cells[3].text = ["🥇 Juara 1", "🥈 Juara 2", "🥉 Juara 3"] [i] if i < 3 else "-"
+                cells[3].text = ["🥇 Juara 1", "🥈 Juara 2", "🥉 Juara 3"][i] if i < 3 else "-"
             doc.add_paragraph(f"🎉 Selamat kepada {data_posisi.iloc[0]['Nama']} sebagai {posisi} terbaik.")
 
         doc.add_paragraph("\n\nLembar Pengesahan Penilai:").runs[0].bold = True
